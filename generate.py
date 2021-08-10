@@ -55,35 +55,6 @@ def adjust(img, range_min, range_max, adjust_type):
     return img
 
 
-def adjust_brightness(img, range_start, range_end):
-    weight = np.random.uniform(range_start, range_end, 1)
-    img = np.asarray(img).astype('float32') * weight
-    img = np.clip(img, 0.0, 255.0).astype('uint8')
-    return img
-
-
-def adjust_saturation(img, range_start, range_end):
-    weight = np.random.uniform(range_start, range_end, 1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(img)
-    s = np.asarray(s).astype('float32') * weight
-    s = np.clip(s, 0.0, 255.0).astype('uint8')
-    img = cv2.merge([h, s, v])
-    img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
-    return img
-
-
-def adjust_hue(img, range_start, range_end):
-    weight = np.random.uniform(range_start, range_end, 1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(img)
-    h = np.asarray(h).astype('float32') * weight
-    h = np.clip(h, 0.0, 255.0).astype('uint8')
-    img = cv2.merge([h, s, v])
-    img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
-    return img
-
-
 def get_save_path(img_path, class_index, inc):
     img_path = img_path.replace('\\', '/')
     raw_file_name = img_path.split('/')[-1][:-4]
