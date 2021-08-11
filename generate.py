@@ -31,9 +31,8 @@ def remove_object_from_image(img, cx, cy, w, h, bgr):
     box = to_x1_y1_x2_y2([cx, cy, w, h])
     box = multiple_width_height(box, raw_width, raw_height)
     x1, y1, x2, y2 = box
-    for y in range(y1, y2):
-        for x in range(x1, x2):
-            img[y][x] = bgr
+    bgr = (int(bgr[0]), int(bgr[1]), int(bgr[2]))
+    cv2.rectangle(img, (x1, y1), (x2, y2), bgr, -1)
     return img
 
 
