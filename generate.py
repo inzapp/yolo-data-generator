@@ -5,33 +5,75 @@ from random import shuffle
 import cv2
 import numpy as np
 
-target_class_count = 1000
+target_class_count = 100
+
+
+def multiple_width_height(box, width, height):
+    x1, y1, x2, y2 = box
+    x1 = int(x1 * width)
+    x2 = int(x2 * width)
+    y1 = int(y1 * height)
+    y2 = int(y2 * height)
+    return [x1, y1, x2, y2]
+
+
+def to_x1_y1_x2_y2(box):
+    cx, cy, w, h = box
+    x1 = cx - w * 0.5
+    y1 = cy - h * 0.5
+    x2 = cx + w * 0.5
+    y2 = cy + h * 0.5
+    return [x1, y1, x2, y2]
+
+
+def remove_object_from_image(img, cx, cy, w, h, bgr):
+    raw_height, raw_width = img.shape[0], img.shape[1]
+    box = to_x1_y1_x2_y2([cx, cy, w, h])
+    box = multiple_width_height(box, raw_width, raw_height)
+    x1, y1, x2, y2 = box
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            img[y][x] = bgr
+    return img
+
+
+def remove_overlapped_object_by_other_class(img, label_lines, bgr):
+    raw_height, raw_width = img.shape[0], img.shape[1]
+
+    new_label_lines = []
+    for line in label_lines:
+        class_index, cx, cy, w, h = list(map(float, line.replace('\n', '').split()))
+        box = to_x1_y1_x2_y2([cx, cy, w, h])
+        box = multiple_width_height(box, raw_width, raw_height)
+        x1, y1, x2, y2 = box
+
+        object_pixel_cnt = 0
+        removed_pixel_cnt = 0
+        for y in range(y1, y2):
+            for x in range(x1, x2):
+                object_pixel_cnt += 1
+                if (img[y][x] == bgr).all():
+                    removed_pixel_cnt += 1
+
+        removed_pixel_rate = removed_pixel_cnt / float(object_pixel_cnt)
+        if removed_pixel_rate < 0.55:
+            new_label_lines.append(line)
+    return new_label_lines
 
 
 def remove_other_class(img, label_lines, target_class_index):
     raw_height, raw_width = img.shape[0], img.shape[1]
-    global_mean_bgr = np.mean(np.mean(img, axis=1), axis=0)
+    global_mean_bgr = np.mean(np.mean(img, axis=1), axis=0).astype('uint8')
+
     new_label_lines = []
     for line in label_lines:
-        raw_line = line
         class_index, cx, cy, w, h = list(map(float, line.replace('\n', '').split()))
         if class_index == target_class_index:
-            new_label_lines.append(raw_line)
-            continue
+            new_label_lines.append(line)
+        else:
+            img = remove_object_from_image(img, cx, cy, w, h, global_mean_bgr)
 
-        x1 = cx - w / 2.0
-        y1 = cy - h / 2.0
-        x2 = cx + w / 2.0
-        y2 = cy + h / 2.0
-
-        x1 = int(x1 * raw_width)
-        y1 = int(y1 * raw_height)
-        x2 = int(x2 * raw_width)
-        y2 = int(y2 * raw_height)
-
-        for y in range(y1, y2):
-            for x in range(x1, x2):
-                img[y][x] = global_mean_bgr
+    new_label_lines = remove_overlapped_object_by_other_class(img, new_label_lines, global_mean_bgr)
     return img, new_label_lines, len(new_label_lines)
 
 
@@ -67,6 +109,9 @@ def get_save_path(img_path, class_index, inc):
 def generate(class_image_paths, class_count, class_index):
     global target_class_count
     if class_count >= target_class_count:
+        return
+
+    if len(class_image_paths) == 0:
         return
 
     inc = 0
