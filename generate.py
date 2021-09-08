@@ -23,6 +23,8 @@ def to_x1_y1_x2_y2(box):
     y1 = cy - h * 0.5
     x2 = cx + w * 0.5
     y2 = cy + h * 0.5
+    box = [x1, y1, x2, y2]
+    box = list(np.clip(np.asarray(box), 0.0, 1.0))
     return [x1, y1, x2, y2]
 
 
