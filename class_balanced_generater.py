@@ -117,7 +117,7 @@ def get_save_path(img_path, class_index, inc):
         os.makedirs(g_save_dir_name, exist_ok=True)
     img_path = img_path.replace('\\', '/')
     raw_file_name = img_path.split('/')[-1][:-4]
-    new_file_name = f'generated_{class_index}_{inc}_{raw_file_name}'
+    new_file_name = f'generated_{raw_file_name}_{class_index}_{inc}'
     img_path = img_path.replace(raw_file_name, new_file_name)
     label_path = f'{img_path[:-4]}.txt'
     img_path = f'{g_save_dir_name}/{img_path}'
