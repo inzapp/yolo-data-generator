@@ -5,7 +5,8 @@ from random import shuffle
 import cv2
 import numpy as np
 
-target_class_count = 100
+g_save_dir_name = 'generated'
+g_target_class_count = 0
 
 
 def multiple_width_height(box, width, height):
@@ -78,20 +79,32 @@ def remove_other_class(img, label_lines, target_class_index):
     return img, new_label_lines, len(new_label_lines)
 
 
-def adjust(img, range_min, range_max, adjust_type):
-    weight = np.random.uniform(range_min, range_max, 1)
+def adjust(img, adjust_type):
+    weight = np.random.uniform(0.75, 1.25)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(img)
 
-    if adjust_type == 'brightness':
-        v = np.asarray(v).astype('float32') * weight
-        v = np.clip(v, 0.0, 255.0).astype('uint8')
+    if adjust_type == 'hue':
+        h = np.asarray(h).astype('float32') * weight
+        h = np.clip(h, 0.0, 255.0).astype('uint8')
     elif adjust_type == 'saturation':
         s = np.asarray(s).astype('float32') * weight
         s = np.clip(s, 0.0, 255.0).astype('uint8')
-    elif adjust_type == 'hue':
-        h = np.asarray(h).astype('float32') * weight
-        h = np.clip(h, 0.0, 255.0).astype('uint8')
+    elif adjust_type == 'brightness':
+        v = np.asarray(v).astype('float32') * weight
+        v = np.clip(v, 0.0, 255.0).astype('uint8')
+    elif adjust_type == 'contrast':
+        weight = np.random.uniform(0.0, 0.25)
+        criteria = np.random.uniform(84.0, 170.0)
+        v = np.asarray(v).astype('float32')
+        v += (criteria - v) * weight
+        v = np.clip(v, 0.0, 255.0).astype('uint8')
+    elif adjust_type == 'noise':
+        range_min = np.random.uniform(0.0, 25.0)
+        range_max = np.random.uniform(0.0, 25.0)
+        v = np.asarray(v).astype('float32')
+        v += np.random.uniform(-range_min, range_max, size=v.shape)
+        v = np.clip(v, 0.0, 255.0).astype('uint8')
 
     img = cv2.merge([h, s, v])
     img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
@@ -99,17 +112,22 @@ def adjust(img, range_min, range_max, adjust_type):
 
 
 def get_save_path(img_path, class_index, inc):
+    global g_save_dir_name
+    if not (os.path.exists(g_save_dir_name) and os.path.isdir(g_save_dir_name)):
+        os.makedirs(g_save_dir_name, exist_ok=True)
     img_path = img_path.replace('\\', '/')
     raw_file_name = img_path.split('/')[-1][:-4]
     new_file_name = f'generated_{class_index}_{inc}_{raw_file_name}'
     img_path = img_path.replace(raw_file_name, new_file_name)
     label_path = f'{img_path[:-4]}.txt'
+    img_path = f'{g_save_dir_name}/{img_path}'
+    label_path = f'{g_save_dir_name}/{label_path}'
     return img_path, label_path
 
 
 def generate(class_image_paths, class_count, class_index):
-    global target_class_count
-    if class_count >= target_class_count:
+    global g_target_class_count
+    if class_count >= g_target_class_count:
         return
 
     if len(class_image_paths) == 0:
@@ -127,9 +145,10 @@ def generate(class_image_paths, class_count, class_index):
             with open(label_path, 'rt') as f:
                 label_lines = f.readlines()
 
-            img = adjust(img, 0.75, 1.25, 'hue')
-            img = adjust(img, 0.75, 1.25, 'saturation')
-            img = adjust(img, 0.75, 1.25, 'brightness')
+            adjust_opts = ['hue', 'saturation', 'brightness', 'contrast', 'noise']
+            shuffle(adjust_opts)
+            for i in range(len(adjust_opts)):
+                img = adjust(img, adjust_opts[i])
             img, label_lines, cur_image_class_count = remove_other_class(img, label_lines, class_index)
 
             new_img_path, new_label_path = get_save_path(path, class_index, inc)
@@ -137,11 +156,10 @@ def generate(class_image_paths, class_count, class_index):
             with open(new_label_path, 'wt') as f:
                 f.writelines(label_lines)
 
-            print(f'saved ===> {new_img_path}')
-
             inc += 1
+            print(f'[{inc:6d}] saved ===> {new_img_path}')
             class_count += cur_image_class_count
-            if class_count >= target_class_count:
+            if class_count >= g_target_class_count:
                 return
 
 
@@ -192,6 +210,7 @@ def get_class_image_paths(image_paths, num_classes):
 
 def print_class_counts():
     image_paths = glob('*.jpg')
+    image_paths += glob('*/*.jpg')
     num_classes = get_num_classes()
     class_counts = get_class_counts(image_paths, num_classes)
     for class_index in range(num_classes):
@@ -210,5 +229,9 @@ def class_balanced_generate():
 
 
 if __name__ == '__main__':
+    print('your current data class count below.')
     print_class_counts()
+    g_target_class_count = int(input('input balanced target class count : '))
     class_balanced_generate()
+    print('generation success.')
+    print_class_counts()
