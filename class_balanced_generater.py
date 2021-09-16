@@ -213,6 +213,7 @@ def print_class_counts():
     image_paths += glob('*/*.jpg')
     num_classes = get_num_classes()
     class_counts = get_class_counts(image_paths, num_classes)
+    print(f'total image count : {len(image_paths)}')
     for class_index in range(num_classes):
         print(f'class {class_index:3d} : {class_counts[class_index]:6d}')
 

@@ -80,8 +80,8 @@ def generate(image_paths):
         return
 
     inc = 0
-    shuffle(image_paths)
     while True:
+        shuffle(image_paths)
         for path in image_paths:
             label_path = f'{path[:-4]}.txt'
             if not (os.path.exists(label_path) and os.path.isfile(label_path)):
@@ -132,12 +132,18 @@ def get_class_counts(image_paths, num_classes):
 
 def print_class_counts():
     image_paths = glob('*.jpg')
+    image_paths += glob('*/*.jpg')
     num_classes = get_num_classes()
     class_counts = get_class_counts(image_paths, num_classes)
     for class_index in range(num_classes):
         print(f'class {class_index:3d} : {class_counts[class_index]:6d}')
+    print(f'\ntotal image count : {len(image_paths)}')
 
 
 if __name__ == '__main__':
+    print('your current data class count below.')
     print_class_counts()
+    generate_count = int(input('input generate count : '))
     generate(glob('*.jpg'))
+    print('generation success.')
+    print_class_counts()
