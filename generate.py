@@ -33,10 +33,7 @@ def adjust(img, adjust_type):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(img)
 
-    if adjust_type == 'hue':
-        h = np.asarray(h).astype('float32') * weight
-        h = np.clip(h, 0.0, 255.0).astype('uint8')
-    elif adjust_type == 'saturation':
+    if adjust_type == 'saturation':
         s = np.asarray(s).astype('float32') * weight
         s = np.clip(s, 0.0, 255.0).astype('uint8')
     elif adjust_type == 'brightness':
@@ -91,7 +88,7 @@ def generate(image_paths):
             with open(label_path, 'rt') as f:
                 label_lines = f.readlines()
 
-            adjust_opts = ['hue', 'saturation', 'brightness', 'contrast', 'noise']
+            adjust_opts = ['saturation', 'brightness', 'contrast', 'noise']
             shuffle(adjust_opts)
             for i in range(len(adjust_opts)):
                 img = adjust(img, adjust_opts[i])
