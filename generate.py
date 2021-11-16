@@ -5,8 +5,6 @@ from random import shuffle
 import cv2
 import numpy as np
 
-generate_count = 2000
-
 
 def multiple_width_height(box, width, height):
     x1, y1, x2, y2 = box
@@ -71,8 +69,7 @@ def get_save_path(img_path, inc):
     return img_path, label_path
 
 
-def generate(image_paths):
-    global generate_count
+def generate(image_paths, generate_count):
     if len(image_paths) == 0:
         return
 
@@ -111,6 +108,7 @@ def get_num_classes():
 
 
 def get_class_counts(image_paths, num_classes):
+    total_image_count = 0
     class_counts = np.zeros(shape=(num_classes,), dtype=np.int32)
     for path in image_paths:
         label_path = f'{path[:-4]}.txt'
@@ -124,23 +122,24 @@ def get_class_counts(image_paths, num_classes):
             class_index, cx, cy, w, h = list(map(float, line.split()))
             class_index = int(class_index)
             class_counts[class_index] += 1
-    return list(class_counts)
+
+        total_image_count += 1
+    return list(class_counts), total_image_count
 
 
 def print_class_counts():
-    image_paths = glob('*.jpg')
-    image_paths += glob('*/*.jpg')
+    image_paths = glob('**/*.jpg', recursive=True)
     num_classes = get_num_classes()
-    class_counts = get_class_counts(image_paths, num_classes)
+    class_counts, total_image_count = get_class_counts(image_paths, num_classes)
     for class_index in range(num_classes):
         print(f'class {class_index:3d} : {class_counts[class_index]:6d}')
-    print(f'\ntotal image count : {len(image_paths)}')
+    print(f'\ntotal image count(label exists) : {total_image_count}')
 
 
 if __name__ == '__main__':
     print('your current data class count below.')
     print_class_counts()
     generate_count = int(input('input generate count : '))
-    generate(glob('*.jpg'))
+    generate(glob('*.jpg'), generate_count)
     print('generation success.')
     print_class_counts()
